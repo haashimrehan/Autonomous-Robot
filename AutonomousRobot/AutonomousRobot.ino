@@ -1,4 +1,4 @@
-#include <MedianFilter.h>
+#include <MedianFilter.h>  //Average ultrasonic sensor Data
 
 // Motors
 // Front Right
@@ -20,20 +20,25 @@ const int lin2 = 48;  //Dark Red
 
 // Motor Power
 const int maxPower = 190;
-int Power = maxPower; //0 - 255
+int Power = maxPower; 
 int leftPower = maxPower;
 int rightPower = maxPower;
+int FLPower = maxPower;
+int FRPower = maxPower;
+int RLPower = maxPower;
+int RRPower = maxPower;
 
 // Front Ping Sensor
 long duration;
 long cm = 100;
 const int trigPin = 45;  //Gray
 const int echoPin = 44;  //Blue
-const int pingStopDistance = 40;
+int pingStopDistance = 40;
+int stillThere = 0;
 int tempR = 1;
 int tempL = 1;
 int tempSpd = 1;
-MedianFilter pingFilter(20, cm);
+MedianFilter pingFilter(50, cm);
 int fcm = cm;
 bool stopped = false;
 
@@ -60,8 +65,64 @@ int rpmB = 0;
 boolean measureRpmA = false;
 boolean measureRpmB = false;
 
-int error = 0;
-int kp = 5;
+float error = 0;
+float error1 = 0;
+float error2 = 0;
+float kp = 50.0;
+
+
+class Encoder {
+  private:
+    int interval = 1000;
+    long previousMillis = 0;
+    long currentMillis = 0;
+    boolean measureRpm = false;
+
+  public:
+    int encoderTick;   //Used to drive
+    int encoderValue;  //resets for RPM
+    int rpm = 0;   //Calculated RPM of Motors
+    int encoderPin;
+
+    Encoder(int encoder) {
+      encoderPin = encoder;
+    }
+
+    void initialize() {
+      pinMode(encoderPin, INPUT_PULLUP);
+      // Attach interrupt at hall sensor A on each rising signal
+      // attachInterrupt(digitalPinToInterrupt(encoderPin), updateEncoder, RISING);
+    }
+
+    void updateEncoder()
+    {
+      encoderValue++;
+      encoderTick++;
+    }
+
+    void updateRPM(bool Print) {
+      // Update RPM value on every second
+      currentMillis = millis();
+      if (currentMillis - previousMillis > interval) {
+        previousMillis = currentMillis;
+
+        rpm = (float)(encoderValue * 60 / 330);
+
+        if (Print) {
+          Serial.print(encoderValue);
+          Serial.print(" ");
+          Serial.print(rpm);
+          Serial.println(" RPM");
+        }
+        encoderValue = 0;
+      }
+    }
+};
+
+Encoder FL(2);
+Encoder FR(19);
+Encoder RL(20);
+Encoder RR(21);
 
 void setup() {
   // Set all the motor control pins to outputs
@@ -82,12 +143,18 @@ void setup() {
   pinMode(trigPin, INPUT);
   pinMode(echoPin, INPUT);
 
-  // Encoders
-  pinMode(HALLSEN_A, INPUT_PULLUP);
-  pinMode(HALLSEN_B, INPUT_PULLUP);
+  // Initialize Encoders
+  FL.initialize();
+  FR.initialize();
+  RL.initialize();
+  RR.initialize();
+
   // Attach interrupt at hall sensor A on each rising signal
-  attachInterrupt(digitalPinToInterrupt(HALLSEN_A), updateEncoderA, RISING);
-  attachInterrupt(digitalPinToInterrupt(HALLSEN_B), updateEncoderB, RISING);
+  attachInterrupt(digitalPinToInterrupt(FL.encoderPin), updateEncoderFL, RISING);
+  attachInterrupt(digitalPinToInterrupt(FR.encoderPin), updateEncoderFR, RISING);
+  attachInterrupt(digitalPinToInterrupt(RL.encoderPin), updateEncoderRL, RISING);
+  attachInterrupt(digitalPinToInterrupt(RR.encoderPin), updateEncoderRR, RISING);
+  //attachInterrupt(digitalPinToInterrupt(HALLSEN_B), updateEncoderB, RISING);
 
   // initialize serial communication:
   Serial.begin(38400);
@@ -97,7 +164,10 @@ void loop()
 {
   pingSense(false);
 
-  updateRPM(false);
-  driveStraight(1);
+  FL.updateRPM(false);
+  FR.updateRPM(false);
+  RL.updateRPM(false);
+  RR.updateRPM(false);
+  eDrive2(1);
 
 }

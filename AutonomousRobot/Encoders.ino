@@ -1,13 +1,25 @@
-void updateEncoderA()
+void updateEncoderFL()
 {
-  encoderValueA++;
-  leftEncoder++;
+  FL.encoderValue++;
+  FL.encoderTick++;
 }
 
-void updateEncoderB()
+void updateEncoderFR()
 {
-  encoderValueB++;
-  rightEncoder++;
+  FR.encoderValue++;
+  FR.encoderTick++;
+}
+
+void updateEncoderRL()
+{
+  RL.encoderValue++;
+  RL.encoderTick++;
+}
+
+void updateEncoderRR()
+{
+  RR.encoderValue++;
+  RR.encoderTick++;
 }
 
 void updateRPM(bool Print) {
