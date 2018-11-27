@@ -50,7 +50,6 @@ bool stopped = false;
 
 volatile long encoderValueA = 0; //left
 volatile long encoderValueB = 0; //right
-
 long leftEncoder = 0;
 long rightEncoder = 0;
 
@@ -62,10 +61,9 @@ long currentMillisB = 0;
 
 int rpmA = 0;   //Calculated RPM of Motors
 int rpmB = 0;
-boolean measureRpmA = false;
-boolean measureRpmB = false;
 
 float error = 0;
+
 float error1 = 0;
 float error2 = 0;
 float kp = 50.0;
@@ -163,11 +161,25 @@ void setup() {
 void loop()
 {
   pingSense(false);
-
   FL.updateRPM(false);
   FR.updateRPM(false);
   RL.updateRPM(false);
   RR.updateRPM(false);
-  eDrive2(1);
+
+ // eDrive4(1);
+
+drive2(1);
+delay(2000);
+drive2(0);
+delay(2000);
+
+
+drive(1);
+
+delay(2000);
+
+drive(0);
+
+delay(2000);
 
 }

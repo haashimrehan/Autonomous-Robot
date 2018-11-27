@@ -1,4 +1,4 @@
-void eDrive2(int dir) {
+void eDrive3(int dir) { //Seperate control for all 4 motors
   if (dir > 0) {
     drive2(1);
   } else if (dir < 0) {
@@ -12,52 +12,68 @@ void eDrive2(int dir) {
 
   FLPower += error1 * 100 / kp;
   RLPower += error2 * 100 / kp;
-    
-  if (FLPower < 1) {
-    FLPower = 0;
-  } else if (FLPower >= 255) {
-    FLPower = 255;
-  }
-  
-  if (RLPower < 1) {
-    RLPower = 0;
-  } else if (FRPower >= 255) {
-    RLPower = 255;
-  }
+  FRPower -= error1 * 100 / kp;
+  RRPower -= error2 * 100 / kp;
 
-   /*
-  Serial.print("Error:");
-  Serial.print(error1);
-  Serial.print(" LRPM:");
-  Serial.print(FL.encoderTick);
-  Serial.print(" LSPD:");
-  Serial.print(FLPower);
-  Serial.print(" RRPM:");
-  Serial.print(FR.encoderTick);
-  Serial.print(" RSPD:");
-  Serial.println(rightPower);
- */
-
-/*
-  Serial.print("Error:");
-  Serial.print(error2);
-  Serial.print(" LRPM:");
-  Serial.print(RL.encoderTick);
-  Serial.print(" LSPD:");
-  Serial.print(RLPower);
-  Serial.print(" RRPM:");
-  Serial.print(RR.encoderTick);
-  Serial.print(" RSPD:");
-  Serial.println(RLPower);
-*/
+  speedControl();
 
   FL.encoderTick = 0;
   FR.encoderTick = 0;
-  
+
+  RL.encoderTick = 0;
+  RR.encoderTick = 0;
+}
+
+void eDrive2(int dir) {//Seperate control for 2 motors (1 for each side)
+  if (dir > 0) {
+    drive2(1);
+  } else if (dir < 0) {
+    drive2(-1);
+  } else {
+    drive2(0);
+  }
+
+  error1 = FL.encoderTick - FR.encoderTick;
+  error2 = RL.encoderTick - RR.encoderTick;
+
+  FLPower += error1 * 100 / kp;
+  RLPower += error2 * 100 / kp;
+
+  speedControl();
+
+  /*
+    Serial.print("Error:");
+    Serial.print(error1);
+    Serial.print(" LRPM:");
+    Serial.print(FL.encoderTick);
+    Serial.print(" LSPD:");
+    Serial.print(FLPower);
+    Serial.print(" RRPM:");
+    Serial.print(FR.encoderTick);
+    Serial.print(" RSPD:");
+    Serial.println(rightPower);
+  */
+
+  /*
+    Serial.print("Error:");
+    Serial.print(error2);
+    Serial.print(" LRPM:");
+    Serial.print(RL.encoderTick);
+    Serial.print(" LSPD:");
+    Serial.print(RLPower);
+    Serial.print(" RRPM:");
+    Serial.print(RR.encoderTick);
+    Serial.print(" RSPD:");
+    Serial.println(RLPower);
+  */
+
+  FL.encoderTick = 0;
+  FR.encoderTick = 0;
+
   RL.encoderTick = 0;
   RR.encoderTick = 0;
   //leftEncoder = 0;
- // rightEncoder = 0;
+  // rightEncoder = 0;
 
   // delay(50);
   /*
@@ -196,14 +212,23 @@ void drive2 (int dir) {
     digitalWrite(rin3, LOW);
     digitalWrite(rin4, HIGH);
   } else if (dir == 0) {  //Stop
-    analogWrite(lenB, 0);
-    analogWrite(lenA, 0);
-    analogWrite(renB, 0);
-    analogWrite(renA, 0);
+    digitalWrite(lenB, HIGH);
+    digitalWrite(lenA, HIGH);
+    digitalWrite(renB, HIGH);
+    digitalWrite(renA, HIGH);
+
+    digitalWrite(lin1, LOW);
+    digitalWrite(lin2, LOW);
+    digitalWrite(lin3, HIGH);
+    digitalWrite(lin4, HIGH);
+
+    digitalWrite(rin1, LOW);
+    digitalWrite(rin2, LOW);
+    digitalWrite(rin3, HIGH);
+    digitalWrite(rin4, HIGH);
   }
 }
 
-//Basic Drive Functions(Drive and Turn Based On Time)
 void drive (int dir) {
   if (dir > 0) {
     analogWrite(lenB, leftPower);
@@ -270,5 +295,30 @@ void turn(int dir) {
     analogWrite(renA, Power);
     digitalWrite(rin3, HIGH);
     digitalWrite(rin4, LOW);
+  }
+}
+
+void speedControl() {
+  if (FLPower < 1) {
+    FLPower = 0;
+  } else if (FLPower >= 255) {
+    FLPower = 255;
+  }
+
+  if (RLPower < 1) {
+    RLPower = 0;
+  } else if (RLPower >= 255) {
+    RLPower = 255;
+  }
+  if (FRPower < 1) {
+    FRPower = 0;
+  } else if (FRPower >= 255) {
+    FRPower = 255;
+  }
+
+  if (RRPower < 1) {
+    RRPower = 0;
+  } else if (RRPower >= 255) {
+    RRPower = 255;
   }
 }

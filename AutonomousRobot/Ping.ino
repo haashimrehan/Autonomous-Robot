@@ -37,6 +37,7 @@ void pingSafety() {
     FRPower = 0;
     RLPower = 0;
     RRPower = 0;
+    drive2(0);
     stopped = true;
     stillThere = 0;
     delay(2000);
