@@ -20,7 +20,7 @@ const int lin2 = 48;  //Dark Red
 
 // Motor Power
 const int maxPower = 190;
-int Power = maxPower; 
+int Power = maxPower;
 int leftPower = maxPower;
 int rightPower = maxPower;
 int FLPower = maxPower;
@@ -44,9 +44,6 @@ bool stopped = false;
 
 // Encoders
 #define ENCODEROUTPUT 330
-
-#define HALLSEN_A 2 //Front Left
-#define HALLSEN_B 19 //Front Right
 
 volatile long encoderValueA = 0; //left
 volatile long encoderValueB = 0; //right
@@ -118,7 +115,7 @@ class Encoder {
 };
 
 Encoder FL(2);
-Encoder FR(19);
+Encoder FR(3);//19
 Encoder RL(20);
 Encoder RR(21);
 
@@ -166,20 +163,6 @@ void loop()
   RL.updateRPM(false);
   RR.updateRPM(false);
 
- // eDrive4(1);
-
-drive2(1);
-delay(2000);
-drive2(0);
-delay(2000);
-
-
-drive(1);
-
-delay(2000);
-
-drive(0);
-
-delay(2000);
+  eDrive(1);
 
 }

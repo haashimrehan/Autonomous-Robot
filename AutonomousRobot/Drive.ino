@@ -301,24 +301,24 @@ void turn(int dir) {
 void speedControl() {
   if (FLPower < 1) {
     FLPower = 0;
-  } else if (FLPower >= 255) {
+  } else if (FLPower > 254) {
     FLPower = 255;
   }
 
   if (RLPower < 1) {
     RLPower = 0;
-  } else if (RLPower >= 255) {
+  } else if (RLPower > 254) {
     RLPower = 255;
   }
   if (FRPower < 1) {
     FRPower = 0;
-  } else if (FRPower >= 255) {
+  } else if (FRPower > 254) {
     FRPower = 255;
   }
 
   if (RRPower < 1) {
     RRPower = 0;
-  } else if (RRPower >= 255) {
+  } else if (RRPower > 254) {
     RRPower = 255;
   }
 }
