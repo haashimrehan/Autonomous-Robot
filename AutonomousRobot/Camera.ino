@@ -15,12 +15,12 @@ boolean pointToBlock (Block target, int hedge) {//Points to a Block that is sent
   int width = 320; // pixy cam width
   if (target.x > width / 2 + hedge) {
     //Turns Left until the blocks x val is within a range
-    turnRight();
+    //turnRight();
     Serial.print("RIGHT");
   }
   else if (target.x < width / 2 - hedge) {
     //Turns Right until the blocks x val is within a range
-    turnLeft();
+    //turnLeft();
     Serial.print("LEFT");
   }
   else if (target.x > width / 2 - hedge && target.x < width / 2 + hedge) {

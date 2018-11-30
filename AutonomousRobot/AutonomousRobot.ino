@@ -1,4 +1,8 @@
 #include <MedianFilter.h>  //Average ultrasonic sensor Data
+#include <Pixy.h>
+#include <PixyI2C.h>
+#include <PixySPI_SS.h>
+#include <TPixy.h>
 
 // Motors
 // Front Right
