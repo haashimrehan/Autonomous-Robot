@@ -65,6 +65,20 @@ float error1 = 0;
 float error2 = 0;
 float kp = 50.0;
 
+//Camera
+#define YELLOW 1
+#define BLUE 2
+#define RED 3
+#define GREEN 5
+Pixy pixy;
+Block blocks[10];
+int midPos;
+float mid = 0, sum = 0;
+int high = 117 ; //Mid Range
+int low = 109; // Mid Range
+
+
+
 
 class Encoder {
   private:
@@ -116,8 +130,8 @@ class Encoder {
 
 Encoder FL(2);
 Encoder FR(3);//19
-Encoder RL(20);
-Encoder RR(21);
+Encoder RL(18); //20
+Encoder RR(19); //21
 
 void setup() {
   // Set all the motor control pins to outputs
