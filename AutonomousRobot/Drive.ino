@@ -1,3 +1,28 @@
+void brakeTurn(int dir) {
+  if (dir > 0) { //Right
+    analogWrite(renA, 255);
+    analogWrite(renB, 255);
+    digitalWrite(rin1, LOW);
+    digitalWrite(rin2, HIGH);
+
+    digitalWrite(rin3, HIGH);
+    digitalWrite(rin4, LOW);
+
+    digitalWrite(lenB, HIGH);
+    digitalWrite(lenA, HIGH);
+    //digitalWrite(renB, HIGH);
+    //digitalWrite(renA, HIGH);
+
+    digitalWrite(lin1, LOW);
+    digitalWrite(lin2, LOW);
+    digitalWrite(lin3, HIGH);
+    digitalWrite(lin4, HIGH);
+
+  } else if (dir < 0) { //Left
+
+  }
+}
+
 void eDrive3(int dir) { //Seperate control for all 4 motors
   if (dir > 0) {
     drive2(1);

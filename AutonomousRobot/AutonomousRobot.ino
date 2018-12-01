@@ -1,8 +1,6 @@
 #include <MedianFilter.h>  //Average ultrasonic sensor Data
-#include <Pixy.h>
-#include <PixyI2C.h>
-#include <PixySPI_SS.h>
-#include <TPixy.h>
+
+#include "PixyLib.h"
 
 // Motors
 // Front Right
@@ -74,15 +72,13 @@ float kp = 50.0;
 #define BLUE 2
 #define RED 3
 #define GREEN 5
-Pixy pixy;
-Block blocks[10];
+
+PixyLib cam;
+
 int midPos;
 float mid = 0, sum = 0;
 int high = 117 ; //Mid Range
 int low = 109; // Mid Range
-
-
-
 
 class Encoder {
   private:
@@ -138,6 +134,8 @@ Encoder RL(18); //20
 Encoder RR(19); //21
 
 void setup() {
+  Serial.begin(38400);
+  cam.begin();
   // Set all the motor control pins to outputs
   pinMode(lenA, OUTPUT);
   pinMode(lenB, OUTPUT);
@@ -170,7 +168,7 @@ void setup() {
   //attachInterrupt(digitalPinToInterrupt(HALLSEN_B), updateEncoderB, RISING);
 
   // initialize serial communication:
-  Serial.begin(38400);
+
 }
 
 void loop()
@@ -181,6 +179,7 @@ void loop()
   RL.updateRPM(false);
   RR.updateRPM(false);
 
-  eDrive(1);
+  cam.getSpecialBlocks(GREEN);
+  cam.pointToBlock(cam.blocks[0], 5);
 
 }
