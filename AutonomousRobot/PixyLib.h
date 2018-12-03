@@ -17,15 +17,16 @@ class PixyLib {
   public:
     //Constructor
     PixyLib();
-
+    
     //Methods
     void begin();
     float getMidpoint (Block _blocks []);
-    boolean pointToBlock (Block target, int hedge);
+    //boolean pointToBlock (Block target, int hedge);
     void getSpecialBlocks (int signiture);
-    void alignRobot(Block target, int hedge);
+    //void alignRobot(Block target, int hedge);
 
     //Objects
+    bool getBlock();
     PixyI2C pixy;
     Block blocks[10];
   private:
