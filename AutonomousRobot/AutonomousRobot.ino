@@ -180,6 +180,6 @@ void loop()
   RR.updateRPM(false);
 
   cam.getSpecialBlocks(GREEN);
-  pointToBlock(cam.blocks[0], 5);
+  pointToBlock(cam.blocks[0], 10);
 
 }
