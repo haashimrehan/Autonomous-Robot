@@ -1,6 +1,27 @@
+#pragma GCC optimize ("-O3")
 #include <MedianFilter.h>  //Average ultrasonic sensor Data
 
 #include "PixyLib.h"
+
+#include "I2Cdev.h"
+#include "MPU6050_6Axis_MotionApps20.h"
+#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+#include "Wire.h"
+#endif
+
+#include <PID_v1.h>
+
+//Define Variables we'll be connecting to
+double Setpoint, Input, Output;
+
+//Specify the links and initial tuning parameters
+double Kp = 60, Ki = 0, Kd = 0;
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+MPU6050 mpu;
+
+int straightSpeed = 150;
+int currentAngle = 0;
 
 // Motors
 // Front Right
@@ -134,7 +155,8 @@ Encoder RL(18); //20
 Encoder RR(19); //21
 
 void setup() {
-  Serial.begin(38400);
+  //  Serial.begin(38400);
+  Serial.begin(115200);
   cam.begin();
   // Set all the motor control pins to outputs
   pinMode(lenA, OUTPUT);
@@ -154,6 +176,9 @@ void setup() {
   pinMode(trigPin, INPUT);
   pinMode(echoPin, INPUT);
 
+  gyroSetup();
+
+
   // Initialize Encoders
   FL.initialize();
   FR.initialize();
@@ -161,25 +186,44 @@ void setup() {
   RR.initialize();
 
   // Attach interrupt at hall sensor A on each rising signal
-  attachInterrupt(digitalPinToInterrupt(FL.encoderPin), updateEncoderFL, RISING);
-  attachInterrupt(digitalPinToInterrupt(FR.encoderPin), updateEncoderFR, RISING);
-  attachInterrupt(digitalPinToInterrupt(RL.encoderPin), updateEncoderRL, RISING);
-  attachInterrupt(digitalPinToInterrupt(RR.encoderPin), updateEncoderRR, RISING);
+  /*attachInterrupt(digitalPinToInterrupt(FL.encoderPin), updateEncoderFL, RISING);
+    attachInterrupt(digitalPinToInterrupt(FR.encoderPin), updateEncoderFR, RISING);
+    attachInterrupt(digitalPinToInterrupt(RL.encoderPin), updateEncoderRL, RISING);
+    attachInterrupt(digitalPinToInterrupt(RR.encoderPin), updateEncoderRR, RISING);
+  */
+
   //attachInterrupt(digitalPinToInterrupt(HALLSEN_B), updateEncoderB, RISING);
 
   // initialize serial communication:
+  long start = millis();
+  while (millis() - start < 3000) {
+    Serial.print(".");
+    gyroUpdate();
+  }
+  //initialize the variables we're linked to
+  Input = currentAngle;
+
+  Setpoint = currentAngle;
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
+  myPID.SetOutputLimits(-255,255);
 
 }
 
 void loop()
 {
+  driveGyro();
+
   pingSense(false);
-  FL.updateRPM(false);
-  FR.updateRPM(false);
-  RL.updateRPM(false);
-  RR.updateRPM(false);
 
-  cam.getSpecialBlocks(GREEN);
-  pointToBlock(cam.blocks[0], 10);
 
+
+  /*FL.updateRPM(false);
+    FR.updateRPM(false);
+    RL.updateRPM(false);
+    RR.updateRPM(false);
+
+    cam.getSpecialBlocks(GREEN);
+    pointToBlock(cam.blocks[0], 10);
+  */
 }

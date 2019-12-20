@@ -1,3 +1,60 @@
+void driveGyro() {
+  //int target = currentAngle;
+  while (true) {
+    gyroUpdate();
+
+    Input = currentAngle;
+    myPID.Compute();
+    Serial.print(Input);
+    Serial.print("  ");
+    Serial.print(Setpoint);
+    Serial.print("  ");
+    Serial.print(Output);
+    Serial.println();
+
+    int rightSpeed = straightSpeed + Output;//(currentAngle - target) * kP;
+    int leftSpeed = straightSpeed - Output;//(currentAngle - target) * kP;
+
+
+    /*  if (rightSpeed > 0) {
+        digitalWrite(in1, HIGH);
+        digitalWrite(in2, LOW);
+      } else if (rightSpeed < 0) {
+        digitalWrite(in1, LOW);
+        digitalWrite(in2, HIGH);
+      }
+      if (leftSpeed > 0) {
+        digitalWrite(in3, HIGH);
+        digitalWrite(in4, LOW);
+      } else if (leftSpeed < 0) {
+        digitalWrite(in3, LOW);
+        digitalWrite(in4, HIGH);
+      }*/
+    digitalWrite(lin1, HIGH);
+    digitalWrite(lin2, LOW);
+    digitalWrite(lin3, LOW);
+    digitalWrite(lin4, HIGH);
+    digitalWrite(rin1, LOW);
+    digitalWrite(rin2, HIGH);
+    digitalWrite(rin3, HIGH);
+    digitalWrite(rin4, LOW);
+
+    rightSpeed = abs(constrain(rightSpeed, 0, 255));
+    leftSpeed = abs(constrain(leftSpeed, 0, 255));
+
+    analogWrite(renA, rightSpeed);
+    analogWrite(renB, rightSpeed);
+    analogWrite(lenA, leftSpeed);
+    analogWrite(lenB, leftSpeed);
+
+    /* Serial.print(rightSpeed);
+      Serial.print("  ");
+      Serial.print(leftSpeed);
+      Serial.println();
+    */
+  }
+}
+
 void eDrive3(int dir) { //Seperate control for all 4 motors
   if (dir > 0) {
     drive2(1);
