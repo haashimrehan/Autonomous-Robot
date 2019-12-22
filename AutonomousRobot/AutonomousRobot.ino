@@ -1,8 +1,6 @@
 #pragma GCC optimize ("-O3")
 #include <MedianFilter.h>  //Average ultrasonic sensor Data
 
-#include "PixyLib.h"
-
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -94,8 +92,6 @@ float kp = 50.0;
 #define RED 3
 #define GREEN 5
 
-PixyLib cam;
-
 int midPos;
 float mid = 0, sum = 0;
 int high = 117 ; //Mid Range
@@ -157,7 +153,6 @@ Encoder RR(19); //21
 void setup() {
   //  Serial.begin(38400);
   Serial.begin(115200);
-  cam.begin();
   // Set all the motor control pins to outputs
   pinMode(lenA, OUTPUT);
   pinMode(lenB, OUTPUT);
