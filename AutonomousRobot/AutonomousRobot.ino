@@ -13,38 +13,26 @@ int straightSpeed = 150;
 int currentAngle = 0;
 
 // Motors
-// Front Right
-const int renA = 6;   //Gray
-const int rin1 = 53;  //Light red
-const int rin2 = 52;  //Dark Red
-// Front Left
-const int lenB = 5;   //gray
-const int lin3 = 47;  //Black
-const int lin4 = 46;  //White
-// Rear Right
-const int renB = 7;   //Orange
-const int rin3 = 51;  //Black
-const int rin4 = 50;  //White
-// Rear Left
-const int lenA = 4;   //Orange
-const int lin1 = 49;  //Light Red
-const int lin2 = 48;  //Dark Red
+// Right
+const int pwmA = 44;   
+const int dir1A = 23; 
+const int dir2A = 24;  
+// Left
+const int pwmB = 5;
+const int dir1B = 47;
+const int dir2B = 46;
 
 // Motor Power
 const int maxPower = 190;
 int Power = maxPower;
 int leftPower = maxPower;
 int rightPower = maxPower;
-int FLPower = maxPower;
-int FRPower = maxPower;
-int RLPower = maxPower;
-int RRPower = maxPower;
 
 // Front Ping Sensor
 long duration;
 long cm = 100;
-const int trigPin = 45;  //Gray
-const int echoPin = 44;  //Blue
+const int trigPin = 45; 
+const int echoPin = 44;
 int pingStopDistance = 40;
 int stillThere = 0;
 int tempR = 1;
@@ -136,40 +124,22 @@ class Encoder {
     }
 };
 
-Encoder FL(2);
-Encoder FR(3);//19
-Encoder RL(18); //20
-Encoder RR(19); //21
-
 void setup() {
-  //  Serial.begin(38400);
   Serial.begin(115200);
+  
   // Set all the motor control pins to outputs
-  pinMode(lenA, OUTPUT);
-  pinMode(lenB, OUTPUT);
-  pinMode(lin1, OUTPUT);
-  pinMode(lin2, OUTPUT);
-  pinMode(lin3, OUTPUT);
-  pinMode(lin4, OUTPUT);
-  pinMode(renA, OUTPUT);
-  pinMode(renB, OUTPUT);
-  pinMode(rin1, OUTPUT);
-  pinMode(rin2, OUTPUT);
-  pinMode(rin3, OUTPUT);
-  pinMode(rin4, OUTPUT);
+  pinMode(pwmA, OUTPUT);
+  pinMode(pwmB, OUTPUT);
+  pinMode(dir1A, OUTPUT);
+  pinMode(dir2A, OUTPUT);
+  pinMode(dir1B, OUTPUT);
+  pinMode(dir2B, OUTPUT);
 
   // Ping Sensor Inputs
   pinMode(trigPin, INPUT);
   pinMode(echoPin, INPUT);
 
   gyroSetup();
-
-
-  // Initialize Encoders
-  FL.initialize();
-  FR.initialize();
-  RL.initialize();
-  RR.initialize();
   
   // initialize serial communication:
   long start = millis();

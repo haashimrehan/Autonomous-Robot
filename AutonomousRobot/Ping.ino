@@ -33,10 +33,6 @@ void pingSafety() {
     Power = 0;
     rightPower = 0;
     leftPower = 0;
-    FLPower = 0;
-    FRPower = 0;
-    RLPower = 0;
-    RRPower = 0;
     //drive2(0);
     stopped = true;
     stillThere = 0;
@@ -50,10 +46,6 @@ void pingSafety() {
     Power = maxPower;
     rightPower = maxPower;
     leftPower = maxPower;
-    FLPower = maxPower;
-    FRPower = maxPower;
-    RLPower = maxPower;
-    RRPower = maxPower;
   }
 }
 
