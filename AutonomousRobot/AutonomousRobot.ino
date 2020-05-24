@@ -1,3 +1,4 @@
+#include <JrkG2.h>
 #include <Wire.h>
 #include <PID_v1.h>
 #include <ros.h>
@@ -8,7 +9,7 @@
 #include <math.h>
 
 //initializing all the variables
-#define LOOPTIME                      115 //100     //Looptime in millisecond
+#define LOOPTIME                      100 //115     //Looptime in millisecond (10hz)
 const byte noCommLoopMax = 10;                //number of main loops the robot will execute without communication before stopping
 unsigned int noCommLoops = 0;                 //main loop without communication counter
 
@@ -20,11 +21,8 @@ const int PIN_ENCOD_B_MOTOR_LEFT = 4;               //B channel for encoder of l
 const int PIN_ENCOD_A_MOTOR_RIGHT = 3;              //A channel for encoder of right motor
 const int PIN_ENCOD_B_MOTOR_RIGHT = 5;              //B channel for encoder of right motor
 
-//const int PIN_SIDE_LIGHT_LED = 46;                  //Side light blinking led pin
-
 unsigned long lastMilli = 0;
 
-//--- Robot-specific constants ---
 const double radius = 0.04;                   //Wheel radius, in m
 const double wheelbase = 0.35;               //Wheelbase, in m
 const double encoder_cpr = 330;                //Encoder ticks or counts per rotation
@@ -48,14 +46,17 @@ int PWM_leftMotor = 0;                     //PWM command for left motor
 int PWM_rightMotor = 0;                    //PWM command for right motor
 
 // PID Parameters
-const double PID_left_param[] = { 0.05, 0, 0.1 }; //Respectively Kp, Ki and Kd for left motor PID
-const double PID_right_param[] = { 0.05, 0, 0.1 }; //Respectively Kp, Ki and Kd for right motor PID
+//const double PID_left_param[] = { 0.05, 0, 0.1 }; //Respectively Kp, Ki and Kd for left motor PID
+//const double PID_right_param[] = { 0.05, 0, 0.1 }; //Respectively Kp, Ki and Kd for right motor PID
 
 volatile float pos_left = 0;       //Left motor encoder position
 volatile float pos_right = 0;      //Right motor encoder position
 
-PID PID_leftMotor(&speed_act_left, &speed_cmd_left, &speed_req_left, PID_left_param[0], PID_left_param[1], PID_left_param[2], DIRECT);          //Setting up the PID for left motor
-PID PID_rightMotor(&speed_act_right, &speed_cmd_right, &speed_req_right, PID_right_param[0], PID_right_param[1], PID_right_param[2], DIRECT);   //Setting up the PID for right motor
+//PID PID_leftMotor(&speed_act_left, &speed_cmd_left, &speed_req_left, PID_left_param[0], PID_left_param[1], PID_left_param[2], DIRECT);          //Setting up the PID for left motor
+//PID PID_rightMotor(&speed_act_right, &speed_cmd_right, &speed_req_right, PID_right_param[0], PID_right_param[1], PID_right_param[2], DIRECT);   //Setting up the PID for right motor
+
+JrkG2I2C leftJrk(11);
+JrkG2I2C rightJrk(12);
 
 // Pins
 const uint8_t R_PWM = 44;
@@ -83,8 +84,8 @@ ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", handle_cmd);   //create
 geometry_msgs::Vector3Stamped speed_msg;                                //create a "speed_msg" ROS message
 ros::Publisher speed_pub("speed", &speed_msg);                          //create a publisher to ROS topic "speed" using the "speed_msg" type
 
-
 void setup() {
+  Wire.begin();
 
   pinMode(L_PWM, OUTPUT);
   pinMode(L_FORW, OUTPUT);
@@ -101,32 +102,20 @@ void setup() {
   //setting motor speeds to zero
   stop();
 
-  //setting PID parameters
-  PID_leftMotor.SetSampleTime(95);
-  PID_rightMotor.SetSampleTime(95);
-  PID_leftMotor.SetOutputLimits(-max_speed, max_speed);
-  PID_rightMotor.SetOutputLimits(-max_speed, max_speed);
-  PID_leftMotor.SetMode(AUTOMATIC);
-  PID_rightMotor.SetMode(AUTOMATIC);
-
-
-  //https://www.arduino.cc/reference/en/language/functions/external-interrupts/attachinterrupt/
   // Define the rotary encoder for left motor
   pinMode(PIN_ENCOD_A_MOTOR_LEFT, INPUT);
   pinMode(PIN_ENCOD_B_MOTOR_LEFT, INPUT);
-  digitalWrite(PIN_ENCOD_A_MOTOR_LEFT, HIGH);                // turn on pullup resistor
+  digitalWrite(PIN_ENCOD_A_MOTOR_LEFT, HIGH);
   digitalWrite(PIN_ENCOD_B_MOTOR_LEFT, HIGH);
   attachInterrupt(0, encoderLeftMotor, RISING);
 
   // Define the rotary encoder for right motor
   pinMode(PIN_ENCOD_A_MOTOR_RIGHT, INPUT);
   pinMode(PIN_ENCOD_B_MOTOR_RIGHT, INPUT);
-  digitalWrite(PIN_ENCOD_A_MOTOR_RIGHT, HIGH);                // turn on pullup resistor
+  digitalWrite(PIN_ENCOD_A_MOTOR_RIGHT, HIGH);
   digitalWrite(PIN_ENCOD_B_MOTOR_RIGHT, HIGH);
   attachInterrupt(1, encoderRightMotor, RISING);
 }
-
-//_________________________________________________________________________
 
 void loop() {
   nh.spinOnce();
@@ -152,19 +141,15 @@ void loop() {
     pos_right = 0;
 
     speed_cmd_left = constrain(speed_cmd_left, -max_speed, max_speed);
-    PID_leftMotor.Compute();
+    //    PID_leftMotor.Compute();
     // compute PWM value for left motor. Check constant definition comments for more information.
-    PWM_leftMotor = constrain(((speed_req_left + sgn(speed_req_left) * min_speed_cmd) / speed_to_pwm_ratio) + (speed_cmd_left / speed_to_pwm_ratio), -255, 255); //
+    //    PWM_leftMotor = constrain(((speed_req_left + sgn(speed_req_left) * min_speed_cmd) / speed_to_pwm_ratio) + (speed_cmd_left / speed_to_pwm_ratio), -255, 255); //
 
     if (noCommLoops >= noCommLoopMax) {                   //Stopping if too much time without command
-      digitalWrite(L_FORW, 0);
-      digitalWrite(L_BACK, 0);
-      analogWrite(L_PWM, 0);
+      leftJrk.stopMotor();
     }
     else if (speed_req_left == 0) {                       //Stopping
-      digitalWrite(L_FORW, 0);
-      digitalWrite(L_BACK, 0);
-      analogWrite(L_PWM, 0);
+      leftJrk.stopMotor();
     }
     else if (PWM_leftMotor > 0) {                         //Going forward
       digitalWrite(L_FORW, 0);
@@ -178,19 +163,15 @@ void loop() {
     }
 
     speed_cmd_right = constrain(speed_cmd_right, -max_speed, max_speed);
-    PID_rightMotor.Compute();
+    //    PID_rightMotor.Compute();
     // compute PWM value for right motor. Check constant definition comments for more information.
-    PWM_rightMotor = constrain(((speed_req_right + sgn(speed_req_right) * min_speed_cmd) / speed_to_pwm_ratio) + (speed_cmd_right / speed_to_pwm_ratio), -255, 255); //
+    //    PWM_rightMotor = constrain(((speed_req_right + sgn(speed_req_right) * min_speed_cmd) / speed_to_pwm_ratio) + (speed_cmd_right / speed_to_pwm_ratio), -255, 255); //
 
     if (noCommLoops >= noCommLoopMax) {                   //Stopping if too much time without command
-      digitalWrite(R_FORW, 0);
-      digitalWrite(R_BACK, 0);
-      analogWrite(R_PWM, 0);
+      rightJrk.stopMotor();
     }
     else if (speed_req_right == 0) {                      //Stopping
-      digitalWrite(R_FORW, 0);
-      digitalWrite(R_BACK, 0);
-      analogWrite(R_PWM, 0);
+      rightJrk.stopMotor();
     }
     else if (PWM_rightMotor > 0) {                        //Going forward
       digitalWrite(R_FORW, 1);
@@ -241,16 +222,6 @@ void encoderLeftMotor() {
 void encoderRightMotor() {
   if (digitalRead(PIN_ENCOD_A_MOTOR_RIGHT) == digitalRead(PIN_ENCOD_B_MOTOR_RIGHT)) pos_right--;
   else pos_right++;
-}
-
-void stop()
-{
-  digitalWrite(L_FORW, 0);
-  digitalWrite(L_BACK, 0);
-  digitalWrite(R_FORW, 0);
-  digitalWrite(R_BACK, 0);
-  analogWrite(L_PWM, 0);
-  analogWrite(R_PWM, 0);
 }
 
 template <typename T> int sgn(T val) {
