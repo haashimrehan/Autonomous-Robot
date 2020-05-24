@@ -26,8 +26,14 @@ unsigned long lastMilli = 0;
 const double radius = 0.04;                   //Wheel radius, in m
 const double wheelbase = 0.35;               //Wheelbase, in m
 const double encoder_cpr = 330;                //Encoder ticks or counts per rotation
-const double speed_to_pwm_ratio = 0.00235;     //Ratio to convert speed (in m/s) to PWM value. It was obtained by plotting the wheel speed in relation to the PWM motor command (the value is the slope of the linear function).
-const double min_speed_cmd = 0.0882;           //(min_speed_cmd/speed_to_pwm_ratio) is the minimum command value needed for the motor to start moving. This value was obtained by plotting the wheel speed in relation to the PWM motor command (the value is the constant of the linear function).
+//const double speed_to_pwm_ratio = 0.00429//0.00235;     //Ratio to convert speed (in m/s) to PWM value. It was obtained by plotting the wheel speed in relation to the PWM motor command (the value is the slope of the linear function).
+//const double min_speed_cmd = 0.0882;           //(min_speed_cmd/speed_to_pwm_ratio) is the minimum command value needed for the motor to start moving. This value was obtained by plotting the wheel speed in relation to the PWM motor command (the value is the constant of the linear function).
+
+const double left_speed_to_cmd_ratio = 0.000429;     //Ratio to convert speed (in m/s) to PWM value. It was obtained by plotting the wheel speed in relation to the PWM motor command (the value is the slope of the linear function).
+const double left_min_speed_cmd = -0.983;           //(min_speed_cmd/speed_to_pwm_ratio) is the minimum command value needed for the motor to start moving. This value was obtained by plotting the wheel speed in relation to the PWM motor command (the value is the constant of the linear function).
+
+const double right_speed_to_cmd_ratio = 0.000765;     //Ratio to convert speed (in m/s) to PWM value. It was obtained by plotting the wheel speed in relation to the PWM motor command (the value is the slope of the linear function).
+const double right_min_speed_cmd = -1.57;
 
 double speed_req = 0;                         //Desired linear speed for the robot, in m/s
 double angular_speed_req = 0;                 //Desired angular speed for the robot, in rad/s
@@ -59,12 +65,12 @@ JrkG2I2C leftJrk(11);
 JrkG2I2C rightJrk(12);
 
 // Pins
-const uint8_t R_PWM = 44;
-const uint8_t R_FORW = 23;
-const uint8_t R_BACK = 24;
-const uint8_t L_FORW = 26;
-const uint8_t L_BACK = 25;
-const uint8_t L_PWM = 46;
+/*const uint8_t R_PWM = 44;
+  const uint8_t R_FORW = 23;
+  const uint8_t R_BACK = 24;
+  const uint8_t L_FORW = 26;
+  const uint8_t L_BACK = 25;
+  const uint8_t L_PWM = 46;*/
 
 ros::NodeHandle nh;
 
@@ -87,12 +93,13 @@ ros::Publisher speed_pub("speed", &speed_msg);                          //create
 void setup() {
   Wire.begin();
 
-  pinMode(L_PWM, OUTPUT);
-  pinMode(L_FORW, OUTPUT);
-  pinMode(L_BACK, OUTPUT);
-  pinMode(R_PWM, OUTPUT);
-  pinMode(R_FORW, OUTPUT);
-  pinMode(R_BACK, OUTPUT);
+  /*
+    pinMode(L_PWM, OUTPUT);
+    pinMode(L_FORW, OUTPUT);
+    pinMode(L_BACK, OUTPUT);
+    pinMode(R_PWM, OUTPUT);
+    pinMode(R_FORW, OUTPUT);
+    pinMode(R_BACK, OUTPUT);*/
 
   nh.initNode();                            //init ROS node
   nh.getHardware()->setBaud(57600);         //set baud for ROS serial communication
@@ -123,14 +130,14 @@ void loop() {
   { // enter timed loop
     lastMilli = millis();
 
-    if (abs(pos_left) < 5) {                                                  //Avoid taking in account small disturbances
+    if (abs(pos_left) < 2) {                                                  //Avoid taking in account small disturbances
       speed_act_left = 0;
     }
     else {
       speed_act_left = ((pos_left / encoder_cpr) * 2 * PI) * (1000 / LOOPTIME) * radius; // calculate speed of left wheel
     }
 
-    if (abs(pos_right) < 5) {                                                 //Avoid taking in account small disturbances
+    if (abs(pos_right) < 2) {                                                 //Avoid taking in account small disturbances
       speed_act_right = 0;
     }
     else {
@@ -143,7 +150,8 @@ void loop() {
     speed_cmd_left = constrain(speed_cmd_left, -max_speed, max_speed);
     //    PID_leftMotor.Compute();
     // compute PWM value for left motor. Check constant definition comments for more information.
-    //    PWM_leftMotor = constrain(((speed_req_left + sgn(speed_req_left) * min_speed_cmd) / speed_to_pwm_ratio) + (speed_cmd_left / speed_to_pwm_ratio), -255, 255); //
+
+    PWM_leftMotor = constrain(((speed_req_left + sgn(speed_req_left) * left_min_speed_cmd ) / left_speed_to_cmd_ratio) + (speed_cmd_left / left_speed_to_cmd_ratio), 0, 4095);
 
     if (noCommLoops >= noCommLoopMax) {                   //Stopping if too much time without command
       leftJrk.stopMotor();
@@ -151,21 +159,14 @@ void loop() {
     else if (speed_req_left == 0) {                       //Stopping
       leftJrk.stopMotor();
     }
-    else if (PWM_leftMotor > 0) {                         //Going forward
-      digitalWrite(L_FORW, 0);
-      digitalWrite(L_BACK, 1);
-      analogWrite(L_PWM, abs(PWM_leftMotor));
-    }
-    else {                                               //Going backward
-      digitalWrite(L_FORW, 1);
-      digitalWrite(L_BACK, 0);
-      analogWrite(L_PWM, abs(PWM_leftMotor));
+    else {                                               //Driving
+      leftJrk.setTarget(PWM_leftMotor);
     }
 
     speed_cmd_right = constrain(speed_cmd_right, -max_speed, max_speed);
     //    PID_rightMotor.Compute();
     // compute PWM value for right motor. Check constant definition comments for more information.
-    //    PWM_rightMotor = constrain(((speed_req_right + sgn(speed_req_right) * min_speed_cmd) / speed_to_pwm_ratio) + (speed_cmd_right / speed_to_pwm_ratio), -255, 255); //
+    PWM_rightMotor = constrain(((speed_req_right + sgn(speed_req_right) * right_min_speed_cmd) / right_speed_to_cmd_ratio) + (speed_cmd_right / right_speed_to_cmd_ratio), 0, 4095);
 
     if (noCommLoops >= noCommLoopMax) {                   //Stopping if too much time without command
       rightJrk.stopMotor();
@@ -173,19 +174,8 @@ void loop() {
     else if (speed_req_right == 0) {                      //Stopping
       rightJrk.stopMotor();
     }
-    else if (PWM_rightMotor > 0) {                        //Going forward
-      digitalWrite(R_FORW, 1);
-      digitalWrite(R_BACK, 0);
-      analogWrite(R_PWM, abs(PWM_rightMotor));
-      //     rightMotor->setSpeed(abs(PWM_rightMotor));
-      //   rightMotor->run(FORWARD);
-    }
-    else {                                                //Going backward
-      digitalWrite(R_FORW, 0);
-      digitalWrite(R_BACK, 1);
-      analogWrite(R_PWM, abs(PWM_rightMotor));
-      //      rightMotor->setSpeed(abs(PWM_rightMotor));
-      //      rightMotor->run(BACKWARD);
+    else {                                                //Driving
+      rightJrk.setTarget(PWM_leftMotor);
     }
 
     if ((millis() - lastMilli) >= LOOPTIME) {     //write an error if execution time of the loop in longer than the specified looptime
@@ -196,34 +186,6 @@ void loop() {
     if (noCommLoops == 65535) {
       noCommLoops = noCommLoopMax;
     }
-
     publishSpeed(LOOPTIME);   //Publish odometry on ROS topic
   }
-}
-
-//Publish function for odometry, uses a vector type message to send the data (message type is not meant for that but that's easier than creating a specific message type)
-void publishSpeed(double time) {
-  speed_msg.header.stamp = nh.now();      //timestamp for odometry data
-  speed_msg.vector.x = speed_act_left;    //left wheel speed (in m/s)
-  speed_msg.vector.y = speed_act_right;   //right wheel speed (in m/s)
-  speed_msg.vector.z = time / 1000;       //looptime, should be the same as specified in LOOPTIME (in s)
-  speed_pub.publish(&speed_msg);
-  nh.spinOnce();
-  nh.loginfo("Publishing odometry");
-}
-
-//Left motor encoder counter
-void encoderLeftMotor() {
-  if (digitalRead(PIN_ENCOD_A_MOTOR_LEFT) == digitalRead(PIN_ENCOD_B_MOTOR_LEFT)) pos_left++;
-  else pos_left--;
-}
-
-//Right motor encoder counter
-void encoderRightMotor() {
-  if (digitalRead(PIN_ENCOD_A_MOTOR_RIGHT) == digitalRead(PIN_ENCOD_B_MOTOR_RIGHT)) pos_right--;
-  else pos_right++;
-}
-
-template <typename T> int sgn(T val) {
-  return (T(0) < val) - (val < T(0));
 }
