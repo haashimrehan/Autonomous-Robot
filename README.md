@@ -1,4 +1,4 @@
 # Autonomous-Robot
-An Autonomous robot drivebase with functions working with encoders and various sensors, all powered by an Arduino Mega.
+An Autonomous robot drivebase using SLAM running ROS on a Jetson Nano. 
 
 ![Alt text](images/RobotFront.jpg?raw=true "Robot")
