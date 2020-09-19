@@ -1,0 +1,32 @@
+<launch>
+    <arg name="gui" default="false"/>
+    <arg name="model" default="$(find pbr_description)/urdf/robot2.urdf.xacro"/>
+    <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+    <param name="use_gui" value="$(arg gui)"/>
+
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+    <node name="serial_node" pkg="rosserial_python" type="serial_node.py">
+        <param name="port" value="/dev/ttyACM0"/>
+    </node>
+
+    <!--1.060220526 1.031604614-->
+    <node name="nox_controller" pkg="robot_setup_tf" type="odom_calc2"> <!--chmod +x-->
+        <param name="publish_tf" value="false" />
+        <param name="publish_rate" value="10.0" />
+        <param name="linear_scale_positive" value="0.95" />
+        <param name="linear_scale_negative" value="0.95" />
+        <param name="angular_scale_positive" value="0.9301" />
+        <param name="angular_scale_negative" value="0.9301" />
+        <param name="angular_scale_accel" value="0.0" />
+    </node>
+
+
+    <include file="$(find rplidar_ros)/launch/rplidar.launch"/>
+    <include file="$(find realsense2_camera)/launch/rs_t265.launch"/>
+
+    <!-- <node pkg="tf" type="static_transform_publisher" name="odom_to_base" args="0 0 0 0 0 0 /odom /base_link 100" /> -->
+    <!-- <node pkg="tf" type="static_transform_publisher" name="t265_to_base" args="-0.16 0 -0.2 0 0 0 /rs_t265_pose_frame /base_link 100" /> -->
+    <!-- <node pkg="tf" type="static_transform_publisher" name="map_to_t265" args="0 0 0 0 0 0 /map /rs_t265_odom_frame 100" /> -->
+</launch>

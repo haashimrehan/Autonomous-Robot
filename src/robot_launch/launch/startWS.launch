@@ -1,0 +1,5 @@
+<launch>
+<!--    <node pkg="robot_launch" type="startWS.sh" name="startWS" output="screen" /> -->
+
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+</launch>

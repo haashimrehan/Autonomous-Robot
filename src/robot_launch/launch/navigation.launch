@@ -1,0 +1,23 @@
+<launch>
+
+    <arg name="local_planner" default="eband" doc="Local planner can be either dwa, dwb, eband, base, teb or pose" />
+    <arg name="map_file" default="$(find robot_launch)/maps/my_map9.yaml" doc="Path to a map .yaml file (required)." />
+
+    <arg name="ekf_file" default="$(find robot_launch)/config/localization/ekf_localization_navigation.yaml"/>
+    <include file="$(find robot_launch)/launch/ekf_localization.launch">
+        <arg name="ekf_file" value="$(arg ekf_file)"/>
+    </include>
+
+    <include file="$(find robot_launch)/launch/map.launch">
+        <arg name="map_file" value="$(arg map_file)" />
+    </include>
+
+    <include file="$(find robot_launch)/launch/amcl.launch" />
+
+    <include file="$(find robot_launch)/launch/move_base.launch">
+        <arg name="local_planner" value="$(arg local_planner)"/>
+    </include>
+
+    <node name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" />
+
+</launch>

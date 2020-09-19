@@ -1,0 +1,20 @@
+<launch>
+
+    <!--    <arg name="scan_topic" default="scan" />-->
+    <arg name="base_frame" default="base_link" />
+    <arg name="odom_frame" default="odom" />
+    <!--   <arg name="odom_frame" default="rs_t265_pose_frame" />-->
+
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+        <param name="base_frame" value="$(arg base_frame)"/>
+        <param name="odom_frame" value="$(arg odom_frame)"/>
+        <!--      <param name="map_update_interval" value="5.0"/>-->
+        <param name="maxUrange" value="5.5"/>
+        <param name="maxRange" value="5.5"/>
+        <param name="minimumScore" value="50"/>
+        <param name="linearUpdate" value="0.2"/>
+        <param name="angularUpdate" value="0.25"/>
+        <param name="temporalUpdate" value="5.0"/>
+        <param name="delta" value="0.025"/>
+    </node>
+</launch>
