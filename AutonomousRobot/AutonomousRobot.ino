@@ -1,3 +1,13 @@
+#include "ICM_20948.h"
+#define SERIAL_PORT Serial
+#define SPI_PORT SPI
+#define CS_PIN 2
+
+#define WIRE_PORT Wire
+#define AD0_VAL 1
+
+ICM_20948_I2C myICM; // Otherwise create an ICM_20948_I2C object
+
 #include <JrkG2.h>
 #include <Wire.h>
 #include <PID_v1.h>
@@ -5,11 +15,16 @@
 #include <std_msgs/String.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/Twist.h>
+#include <sensor_msgs/Imu.h>
 #include <ros/time.h>
 #include <math.h>
 
+double q0, q1, q2, q3 = 0;
+double gx, gy, gz, ax, ay, az = 0;
+
 //initializing all the variables
 #define LOOPTIME                      100 //115     //Looptime in millisecond (10hz)
+int counter = 0;
 const byte noCommLoopMax = 10;                //number of main loops the robot will execute without communication before stopping
 unsigned int noCommLoops = 0;                 //main loop without communication counter
 
@@ -90,8 +105,23 @@ ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", handle_cmd);   //create
 geometry_msgs::Vector3Stamped speed_msg;                                //create a "speed_msg" ROS message
 ros::Publisher speed_pub("speed", &speed_msg);                          //create a publisher to ROS topic "speed" using the "speed_msg" type
 
+sensor_msgs::Imu imu_msg;
+ros::Publisher imu_pub("/imu/data", &imu_msg);
+char odom[] = "/imu0";
+
 void setup() {
   Wire.begin();
+  WIRE_PORT.setClock(400000);
+
+  bool initialized = false;
+  while (!initialized) {
+    myICM.begin(WIRE_PORT, AD0_VAL);
+    if (myICM.status != ICM_20948_Stat_Ok) {
+      delay(500);
+    } else {
+      initialized = true;
+    }
+  }
 
   /*
     pinMode(L_PWM, OUTPUT);
@@ -105,6 +135,7 @@ void setup() {
   nh.getHardware()->setBaud(57600);         //set baud for ROS serial communication
   nh.subscribe(cmd_vel);                    //suscribe to ROS topic for velocity commands
   nh.advertise(speed_pub);                  //prepare to publish speed in ROS topic
+  nh.advertise(imu_pub);
 
   //setting motor speeds to zero
   stop();
@@ -122,10 +153,106 @@ void setup() {
   digitalWrite(PIN_ENCOD_A_MOTOR_RIGHT, HIGH);
   digitalWrite(PIN_ENCOD_B_MOTOR_RIGHT, HIGH);
   attachInterrupt(1, encoderRightMotor, RISING);
+
+  bool success = true; // Use success to show if the DMP configuration was successful
+  // Initialize the DMP. initializeDMP is a weak function. You can overwrite it if you want to e.g. to change the sample rate
+  success &= (myICM.initializeDMP() == ICM_20948_Stat_Ok);
+
+  // Enable the DMP orientation sensor
+  success &= (myICM.enableDMPSensor(INV_ICM20948_SENSOR_ORIENTATION) == ICM_20948_Stat_Ok);
+
+  // Enable any additional sensors / features
+  success &= (myICM.enableDMPSensor(INV_ICM20948_SENSOR_ACCELEROMETER) == ICM_20948_Stat_Ok);
+  success &= (myICM.enableDMPSensor(INV_ICM20948_SENSOR_RAW_GYROSCOPE) == ICM_20948_Stat_Ok);
+  //success &= (myICM.enableDMPSensor(INV_ICM20948_SENSOR_MAGNETIC_FIELD_UNCALIBRATED) == ICM_20948_Stat_Ok);
+
+  // Configuring DMP to output data at multiple ODRs:
+  // DMP is capable of outputting multiple sensor data at different rates to FIFO.
+  // Setting value can be calculated as follows:
+  // Value = (DMP running rate / ODR ) - 1
+  // E.g. For a 5Hz ODR rate when DMP is running at 55Hz, value = (55/5) - 1 = 10.
+  success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Quat9, 0) == ICM_20948_Stat_Ok); // Set to the maximum
+  success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Accel, 0) == ICM_20948_Stat_Ok); // Set to the maximum
+  success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Gyro, 0) == ICM_20948_Stat_Ok); // Set to the maximum
+  success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Gyro_Calibr, 0) == ICM_20948_Stat_Ok); // Set to the maximum
+  //success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Cpass, 0) == ICM_20948_Stat_Ok); // Set to the maximum
+  //success &= (myICM.setDMPODRrate(DMP_ODR_Reg_Cpass_Calibr, 0) == ICM_20948_Stat_Ok); // Set to the maximum
+
+  // Enable the FIFO
+  success &= (myICM.enableFIFO() == ICM_20948_Stat_Ok);
+
+  // Enable the DMP
+  success &= (myICM.enableDMP() == ICM_20948_Stat_Ok);
+
+  // Reset DMP
+  success &= (myICM.resetDMP() == ICM_20948_Stat_Ok);
+
+  // Reset FIFO
+  success &= (myICM.resetFIFO() == ICM_20948_Stat_Ok);
+
+}
+
+void updateIMU() {
+  icm_20948_DMP_data_t data;
+  myICM.readDMPdataFromFIFO(&data);
+  if ((myICM.status == ICM_20948_Stat_Ok) || (myICM.status == ICM_20948_Stat_FIFOMoreDataAvail)) // Was valid data available?
+  {
+    //SERIAL_PORT.print(F("Received data! Header: 0x")); // Print the header in HEX so we can see what data is arriving in the FIFO
+    //if ( data.header < 0x1000) SERIAL_PORT.print( "0" ); // Pad the zeros
+    //if ( data.header < 0x100) SERIAL_PORT.print( "0" );
+    //if ( data.header < 0x10) SERIAL_PORT.print( "0" );
+    //SERIAL_PORT.println( data.header, HEX );
+
+    if ((data.header & DMP_header_bitmap_Quat9) > 0) // We have asked for orientation data so we should receive Quat9
+    {
+      // Q0 value is computed from this equation: Q0^2 + Q1^2 + Q2^2 + Q3^2 = 1.
+      // In case of drift, the sum will not add to 1, therefore, quaternion data need to be corrected with right bias values.
+      // The quaternion data is scaled by 2^30.
+
+      //SERIAL_PORT.printf("Quat9 data is: Q1:%ld Q2:%ld Q3:%ld Accuracy:%d\r\n", data.Quat9.Data.Q1, data.Quat9.Data.Q2, data.Quat9.Data.Q3, data.Quat9.Data.Accuracy);
+
+      // Scale to +/- 1
+      q1 = ((double)data.Quat9.Data.Q1) / 1073741824.0; // Convert to double. Divide by 2^30
+      q2 = ((double)data.Quat9.Data.Q2) / 1073741824.0; // Convert to double. Divide by 2^30
+      q3 = ((double)data.Quat9.Data.Q3) / 1073741824.0; // Convert to double. Divide by 2^30
+      q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
+
+
+
+      /*SERIAL_PORT.print(F("{\"quat_w\":"));
+        SERIAL_PORT.print(q0, 3);
+        SERIAL_PORT.print(F(", \"quat_x\":"));
+        SERIAL_PORT.print(q1, 3);
+        SERIAL_PORT.print(F(", \"quat_y\":"));
+        SERIAL_PORT.print(q2, 3);
+        SERIAL_PORT.print(F(", \"quat_z\":"));
+        SERIAL_PORT.print(q3, 3);
+        SERIAL_PORT.println(F("}"));*/
+    }
+
+    if ((data.header & DMP_header_bitmap_Gyro) > 0) // Check for Gyro
+    {
+      gx = (float)data.Raw_Gyro.Data.X; // Extract the raw gyro data
+      gy = (float)data.Raw_Gyro.Data.Y;
+      gz = (float)data.Raw_Gyro.Data.Z;
+    }
+
+    if ((data.header & DMP_header_bitmap_Accel) > 0) // Check the packet contains Accel data
+    {
+      ax = (float)data.Raw_Accel.Data.X; // Extract the raw accelerometer data
+      ay = (float)data.Raw_Accel.Data.Y;
+      az = (float)data.Raw_Accel.Data.Z;
+    }
+  }
 }
 
 void loop() {
   nh.spinOnce();
+
+  //IMU update
+  updateIMU();
+
+
   if ((millis() - lastMilli) >= LOOPTIME)
   { // enter timed loop
     lastMilli = millis();
@@ -187,5 +314,13 @@ void loop() {
       noCommLoops = noCommLoopMax;
     }
     publishSpeed(LOOPTIME);   //Publish odometry on ROS topic
+    publishIMU(LOOPTIME);
+
   }
+
+
+
+
+
+
 }

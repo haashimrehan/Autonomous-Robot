@@ -8,3 +8,28 @@ void publishSpeed(double time) {
   nh.spinOnce();
   nh.loginfo("Publishing odometry");
 }
+
+//Publish function for IMU odometry, directly to /IMU
+void publishIMU(double time) {
+  imu_msg.header.frame_id = odom;
+  imu_msg.header.seq = counter;
+  imu_msg.header.stamp = nh.now();
+  imu_msg.orientation.x = q0;//myImu.readQuatX();
+  imu_msg.orientation.y = q1;//myImu.readQuatY();
+  imu_msg.orientation.z = q2;//myImu.readQuatZ();
+  imu_msg.orientation.w = q3;//myImu.readQuatW();
+
+  imu_msg.angular_velocity.x = gx;//myImu.readGyroX();
+  imu_msg.angular_velocity.y = gy;//myImu.readGyroY();
+  imu_msg.angular_velocity.z = gz;//myImu.readGyroZ();
+
+  imu_msg.linear_acceleration.x = ax;//myImu.readAccelX();
+  imu_msg.linear_acceleration.y = ay;//myImu.readAccelY();
+  imu_msg.linear_acceleration.z = az;//myImu.readAccelZ();
+
+  counter++;
+
+  imu_pub.publish(&imu_msg);
+  nh.spinOnce();
+  nh.loginfo("Publishing IMU");
+}
